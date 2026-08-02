@@ -1,0 +1,17 @@
+# Banco de dados local
+*.db
+
+# Cache Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Dados sensíveis - NÃO commitar
+dados.xlsx
+~$dados.xlsx
+
+# Segredos do Streamlit
+.streamlit/secrets.toml
+
+# Temporários do Excel
+~$*.xlsx
