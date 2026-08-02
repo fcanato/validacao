@@ -9,6 +9,13 @@ import db
 # Inicializar o banco de dados (Supabase ou SQLite local)
 db.init_db()
 
+@st.cache_resource
+def get_shared_data_store():
+    """Planilha carregada compartilhada entre todas as sessões/usuários."""
+    return {"data": None, "file_name": None}
+
+shared_store = get_shared_data_store()
+
 # Configuração da página Streamlit
 st.set_page_config(
     page_title="Sistema de Validação de Equipamentos - SGM x Vicky",
@@ -120,14 +127,10 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # Inicialização do estado da sessão (Session State)
-if 'data_store' not in st.session_state:
-    st.session_state.data_store = None
 if 'history' not in st.session_state:
     st.session_state.history = []
 if 'last_result' not in st.session_state:
     st.session_state.last_result = None
-if 'file_path_loaded' not in st.session_state:
-    st.session_state.file_path_loaded = None
 
 # Obter métricas consolidadas do banco de dados (Supabase ou SQLite)
 db_metrics = db.get_db_metrics()
@@ -189,19 +192,22 @@ with st.sidebar:
             origem_nome = uploaded_file.name
 
     if excel_source is not None:
-        if st.session_state.file_path_loaded != excel_source or st.session_state.data_store is None:
+        if st.session_state.get('file_path_loaded') != str(excel_source) or shared_store["data"] is None:
             with st.spinner("Carregando bases SGM e Vicky..."):
                 res = load_excel_data(excel_source)
-                st.session_state.data_store = res
-                st.session_state.file_path_loaded = excel_source
                 if res.get('loaded'):
+                    shared_store["data"] = res
+                    shared_store["file_name"] = origem_nome
+                    st.session_state['file_path_loaded'] = str(excel_source)
                     st.toast("Planilha carregada com sucesso!", icon="✅")
                 else:
                     st.error(f"Erro ao carregar planilha: {res.get('error')}")
 
-    if st.session_state.data_store and st.session_state.data_store.get('loaded'):
-        df_sgm = st.session_state.data_store['df_sgm']
-        df_vicky = st.session_state.data_store['df_vicky']
+    if shared_store["data"] and shared_store["data"].get('loaded'):
+        df_sgm = shared_store["data"]['df_sgm']
+        df_vicky = shared_store["data"]['df_vicky']
+        file_loaded_name = shared_store["file_name"] or "planilha"
+        st.success(f"✅ Planilha ativa: **{file_loaded_name}**")
         st.markdown(f"📊 **Base SGM:** {len(df_sgm)} registros")
         st.markdown(f"📊 **Base Vicky:** {len(df_vicky)} registros")
     
@@ -212,7 +218,7 @@ with st.sidebar:
         st.rerun()
 
 # Verificar se a planilha foi carregada
-if not st.session_state.data_store or not st.session_state.data_store.get('loaded'):
+if not shared_store["data"] or not shared_store["data"].get('loaded'):
     st.warning("⚠️ Nenhuma planilha válida foi carregada. Utilize o painel lateral para selecionar a planilha Excel contendo as abas **SGM** e **Vicky**.")
     st.stop()
 
@@ -264,7 +270,7 @@ with col_left:
         
         if submit_clicked and serial_input:
             now = datetime.datetime.now()
-            result = validate_equipment_serial(serial_input, st.session_state.data_store)
+            result = validate_equipment_serial(serial_input, shared_store["data"])
             result['hora'] = now.strftime("%H:%M:%S")
             result['data'] = now.strftime("%d/%m/%Y")
             result['operador'] = operador
