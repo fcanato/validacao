@@ -353,14 +353,14 @@ with tab_sessao:
     else:
         df_hist = pd.DataFrame([
             {
-                'ID DB': h.get('db_id', ''),
-                'Hora': h.get('hora', ''),
-                'Serial': h.get('serial', ''),
-                'Técnico': h.get('tecnico', h.get('tecnico_sgm', '')),
-                'Produto': h.get('codigo_produto', h.get('sku', '')),
-                'Resultado': h.get('status', ''),
-                'Categoria': h.get('categoria', ''),
-                'Observação / Motivo': h.get('motivo', '')
+                'ID DB': str(h.get('db_id', '') or ''),
+                'Hora': str(h.get('hora', '') or ''),
+                'Serial': str(h.get('serial', '') or ''),
+                'Técnico': str(h.get('tecnico', h.get('tecnico_sgm', '')) or ''),
+                'Produto': str(h.get('codigo_produto', h.get('sku', '')) or ''),
+                'Resultado': str(h.get('status', '') or ''),
+                'Categoria': str(h.get('categoria', '') or ''),
+                'Observação / Motivo': str(h.get('motivo', '') or '')
             }
             for h in history
         ])
